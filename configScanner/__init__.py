@@ -24,8 +24,6 @@ class configScanner:
                                           config_data[conf]["versions"][ver],
                                           olive_info,
                                           version_checker)
-            else:
-                self.construct_report(conf, ver, config_data[conf], olive_info, {})
 
         if self.versions_updated:
             self.update_versions_file(version_file)
@@ -37,7 +35,7 @@ class configScanner:
     """
     def load_versions(self, path) -> dict:
         version_data = {}
-        if os.path.exists(path):
+        if path != None and os.path.exists(path):
             try:
                 with open(path, "r") as f:
                     version_data = json.load(f)
@@ -95,7 +93,7 @@ class configScanner:
 
     """
        The heart of this class - a function which verifies the configuration is enabled in 
-       assay_info or project_info config files when we have an olive check. In case when
+       assay_info config file when we have an olive check. In case when
        olives checks for a setting:
        * returns False when it is not enabled in .jsonconfig 
        * returns True if this setting is enabled in the .jsonconfig or not None for pipelines
@@ -140,7 +138,7 @@ class configScanner:
             return reported_olives
 
     """
-       fuses config (project or assay) and olive data. Returns a dict with all workflows which run for a setting snippet
+       fuses config assay_info and olive data. Returns a dict with all workflows which run for a setting snippet
        at this point we do not support custom wf versioning and report all tags if an olive has appropriate check
     """
     def construct_report(self, assay, assay_version, config: dict, olives: list, v_check: dict):
@@ -159,6 +157,7 @@ class configScanner:
                                                                        v_check,
                                                                        assay,
                                                                        assay_version)
+                        '''If there are no version restriction, use tags from olives only'''
                         if len(vetted_versions) > 1:
                             self.report[assay][assay_version][n] = list(vetted_versions)
                         elif len(vetted_versions) == 1:

@@ -30,7 +30,6 @@ We scan the olives for two things -
 * check performed on assay_info.jsonconfig file 
 
 The supplied .toml file specifies regex patterns to use when searching for assay configuration checks.
-There is a limited support for project_info configuration file (with no HTML output)
 
 assay_info.jsonconfig file is also scanned and analyzed. The final report indicates which workflows 
 would run given a particular assay/version combination with the following benefits:
@@ -55,7 +54,6 @@ Following options are available:
 * -s Settings file in TOML format (Default is config.toml)
 * -i Instance to scan - this is required, has to match the directory in code repository with olive files
 * -o Output json, data dump       (Default is enabled_workflows.json)
-* -c Check type, supported assay or project, Default is assay
 * -p Output HTML page             (Default is running_workflows.html)
 * -j Path to JavaScript file for embedding into HTML report page
 * -r Path to version control file, not required but can be used to control versions of enabled workflows
@@ -64,7 +62,7 @@ Settings file specify various configuration parameters and at this point has 4 s
 
 * data        - information related to repos for olives
 * instances   - this is to specify our shesmu instances (clinical and research) - there may be changes in a future
-* checks      - regex patterns for finding assay_info or project_info checks in olives
+* checks      - regex patterns for finding assay_info checks in olives
 
 Script will run collecting workflow names as they are used in olives, then it will proceed to analyze this information
 together with assay settings. After bringing all of these data together, the script will output .json and .html reports

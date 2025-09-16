@@ -1,7 +1,6 @@
 [data]
 local_olive_dir="$OLIVE_CODE_HOME/olives"
 assay_config_file="$CODE_BASE/shesmu/common/assay_info.jsonconfig"
-project_config_file="$CODE_BASE/shesmu/common/project_info.jsonconfig"
 
 [instances]
 instance_a="research"
