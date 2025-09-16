@@ -69,6 +69,23 @@ Settings file specify various configuration parameters and at this point has 4 s
 Script will run collecting workflow names as they are used in olives, then it will proceed to analyze this information
 together with assay settings. After bringing all of these data together, the script will output .json and .html reports
 
+# Workflow version control
+
+Workflow version control is designed around checking and updating a version controlling .jsonconfig file. The syntax is 
+very similar to the syntax of the report file, but it may be used for
+
+* controlling version of workflows for selected assays/olive combinations
+* automatic updates when olives with new workflow versions are deployed
+* freezing configs of selected Assay/version to prevent running any updated workflows
+
+![Version control file](docs/Screenshot_workflowVersions.png)
+
+The logic of version control can be also summarized as the following flowchart:
+
+![Version control schema](docs/Screenshot_workflowVersionsFlowchart.png)
+
+As the diagram shows, we may have 
+
 # Running as a cron job
 
 The main goal here is to run automatic updates, and the most practical way to do it is to use crontab.
