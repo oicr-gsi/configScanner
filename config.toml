@@ -1,0 +1,13 @@
+[data]
+local_olive_dir="$OLIVE_CODE_HOME/olives"
+assay_config_file="$CODE_BASE/shesmu/common/assay_info.jsonconfig"
+project_config_file="$CODE_BASE/shesmu/common/project_info.jsonconfig"
+
+[instances]
+instance_a="research"
+instance_b="production-cap"
+
+[checks]
+assay = 'config::assay_info::get\(\S+\).versions\[\S+\].'
+project = 'olive::common::get_project_info\(\S+\).'
+blacklist=['vidarr-u20-providencePipeline.shesmu','vidarr-u20-pbcmProjectMedipsPipe.shesmu']
