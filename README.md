@@ -84,7 +84,9 @@ The logic of version control can be also summarized as the following flowchart:
 
 ![Version control schema](docs/Screenshot_workflowVersionsFlowchart.png)
 
-As the diagram shows, we may have 
+As the diagram shows, we may have a situation when a new workflow appears in production environment that we are 
+scanning. In this case the workflow version will be registered with all assays which are running it unless
+the configurqation is frozen.
 
 # Running as a cron job
 
