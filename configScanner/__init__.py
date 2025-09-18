@@ -64,10 +64,16 @@ class configScanner:
                 print("ERROR: Failed to load older report, invalid format")
         return report_data
 
-
     '''Return the report dict to be used for HTML UI rendering'''
     def get_report(self):
         return self.report
+
+    '''Save report into a .json file for further analysis'''
+    def save_report(self, output_json: str):
+        vetted_od = configScanner.deepsort_dict(self.get_report())
+        with open(output_json, "w") as wfj:
+            json.dump(vetted_od, wfj, indent=2)
+            print(f"WARNING: Saved assay report into a .json file {output_json}")
 
     '''Flatten a list of mixed types (str, list, set)'''
     @staticmethod
@@ -99,13 +105,6 @@ class configScanner:
             else:
                 sorted_items.append((k, v))
         return OrderedDict(sorted_items)
-
-    '''Save report into a .json file for further analysis'''
-    def save_report(self, output_json: str):
-        vetted_od = configScanner.deepsort_dict(self.get_report())
-        with open(output_json, "w") as wfj:
-            json.dump(vetted_od, wfj, indent=2)
-            print(f"WARNING: Saved assay report into a .json file {output_json}")
 
     """
        A simple getter which returns either config snippet (if available)
@@ -174,8 +173,6 @@ class configScanner:
                 vetted_versions.append(existing_tags)
             elif isinstance(existing_tags, list):
                 vetted_versions.extend(existing_tags)
-        except ValueError:
-            pass
         except KeyError:
             pass
         '''Make sure we have unique tags in the list'''
