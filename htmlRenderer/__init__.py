@@ -36,12 +36,12 @@ def today_date() -> str:
 def convert2datachunk(input: str) -> str:
     try:
         with open(input, 'r') as inJson:
-            datachunk = json.load(inJson)
-            return json.dumps(datachunk)
+            data_chunk = json.load(inJson)
+            return json.dumps(data_chunk)
     except FileNotFoundError:
         print(f'ERROR: Could not find file {input}')
     except ValueError:
-        print(f'ERROR: Could not read JSON data')
+        print('ERROR: Could not read JSON data')
     return "{}"
 
 
@@ -49,13 +49,13 @@ def convert2datachunk(input: str) -> str:
    Read the text of the script and return it as a str to embed into HTML page
 """
 def append_script(path: str)->str:
-    scriptText = ""
+    script_text = ""
     try:
         with open(path, 'r') as inScript:
             lines = inScript.readlines()
         for l in lines:
-            scriptText += l
+            script_text += l
     except:
         print(f"ERROR: Could not read from {path} to load the javascript")
         exit(1)
-    return scriptText
+    return script_text

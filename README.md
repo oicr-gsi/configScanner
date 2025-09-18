@@ -1,12 +1,15 @@
 # configScanner
 A tracker showing which workflows would run for a given assay. Takes in account both the setting 
-for assays and existing checks in olives. 
+for assays and existing checks in olives. If available, version control .jsonconfig will be checked
+if a workflow version is specified in this file, it will override the version information
+from an olive scan. 
 
 These scripts are for getting information from Bitbucket analysis-config repository. They read
 olive files and assay configuration file combining this information and presenting a list of 
-workflows which would run for a given assay given exisiting settings.
+workflows which would run for a given assay given exisiting settings. Reported data may be used
+for tracking any versions of workflows ran for a given assay/version combination.
 
-reports iare in .json and .html formats. Developed in Python 3.12, these script should run with older
+reports are in .json and .html formats. Developed in Python 3.12, these script should run with older
 (3.10+) python libraries as well.
 
 ![HTML output](docs/Screenshot_configScanner.png)
@@ -53,7 +56,7 @@ Following options are available:
 
 * -s Settings file in TOML format (Default is config.toml)
 * -i Instance to scan - this is required, has to match the directory in code repository with olive files
-* -o Output json, data dump       (Default is enabled_workflows.json)
+* -o Output json, data dump       (Default is enabled_workflows.jsoni, this is also checked and updated)
 * -p Output HTML page             (Default is running_workflows.html)
 * -j Path to JavaScript file for embedding into HTML report page
 * -r Path to version control file, not required but can be used to control versions of enabled workflows
@@ -69,12 +72,9 @@ together with assay settings. After bringing all of these data together, the scr
 
 # Workflow version control
 
-Workflow version control is designed around checking and updating a version controlling .jsonconfig file. The syntax is 
-very similar to the syntax of the report file, but it may be used for
-
-* controlling version of workflows for selected assays/olive combinations
-* automatic updates when olives with new workflow versions are deployed
-* freezing configs of selected Assay/version to prevent running any updated workflows
+Workflow version control is designed around checking and [manually] updating a version controlling .jsonconfig file. The syntax is 
+very similar to the syntax of the report file, but it may be used for controlling version of workflows for 
+selected assays/olive combinations
 
 ![Version control file](docs/Screenshot_workflowVersions.png)
 
@@ -84,7 +84,7 @@ The logic of version control can be also summarized as the following flowchart:
 
 As the diagram shows, we may have a situation when a new workflow appears in production environment that we are 
 scanning. In this case the workflow version will be registered with all assays which are running it unless
-the configurqation is frozen.
+the configurqation is controlled by version control .jsonconfig.
 
 # Running as a cron job
 
