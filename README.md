@@ -82,9 +82,9 @@ The logic of version control can be also summarized as the following flowchart:
 
 ![Version control schema](docs/Screenshot_workflowVersionsFlowchart.png)
 
-As the diagram shows, we may have a situation when a new workflow appears in production environment that we are 
+As the diagram shows, we may have a situation when a new workflow appears in production environment we are 
 scanning. In this case the workflow version will be registered with all assays which are running it unless
-the configurqation is controlled by version control .jsonconfig.
+the configuration is controlled by version control .jsonconfig (the latter is very rare).
 
 # Running as a cron job
 
