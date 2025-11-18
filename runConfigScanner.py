@@ -2,14 +2,11 @@
    Config scanner uses some ideas (and code) from workflowTracker, but to a small extent
    and modified (simplified) for local file parsing. It uses .toml configuration file to
    point the scripts to the directories with olives (.shesmu instruction files) and configuration
-   file for assays (assay_info.jsonconfig). It may also take a path to a version control file
-   which tracks the versions of workflows used by various assays. A special freeze flag allows
-   to prevent updates to existing records, making it possible to run multiple versions of the same
-   workflow in parallel, for specific assays
+   file for assays (assay_info.jsonconfig).
 
    By parsing both olives and assay config file we can get information on
-   a) which flags the scanned olives are using to run workflows (and which version)
-   b) are these flags set to 'enable' in assay config file
+   a) which checks the scanned olives are using to run workflows (and which version)
+   b) are these flags set correctly in assay config file
 """
 import argparse
 import json
@@ -69,7 +66,6 @@ def load_config(path):
     return json_data
 
 """
-                             ---- Save jsonconfig file for staging ----
    this should take in account both older ground truth (assay_info.jsonconfig) settings and all olives with checks
    update older information in ground truth with what we got from olive/assay_info scan and print into a file
 """
@@ -102,7 +98,6 @@ def save_config(conf_data: dict, output_conf: str):
         print(f"ERROR: writing to a config file {output_conf} failed")
 
 
-# TODO need to add a staging GroundTruth output (analog of versions file)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run parsing script to generate assay scan report table')
     parser.add_argument('-s', '--settings', help='Settings file in TOML format', required=False, default="config.toml")
@@ -129,7 +124,7 @@ if __name__ == '__main__':
     config_check = None
     try:
         check_pattern = settings["checks"]["assay"]
-        config_check = re.compile(f'({check_pattern})' + '(?P<check>\\S+)')
+        config_check = re.compile(rf'({check_pattern})')
     except:
         print("Failed to compile a search pattern for olive check detection")
 
@@ -169,7 +164,7 @@ if __name__ == '__main__':
             combined_report.update(vetted_report)
             ''' 5. Dump the data into json file and generate a report HTML page '''
             if len(vetted_report) > 0:
-                confScanner.save_report(output_json, instance_to_scan)
+                confScanner.save_report(output_json)
                 html_page = htmlRenderer.convert2page(output_json, java_script, instance_to_scan)
                 instance_page = output_page + "_" + instance_to_scan + ".html"
                 with open(instance_page, 'w') as op:

@@ -18,7 +18,7 @@
       const section = sectionDropdown.value;
       const sectionData = data[section];
       
-      reference.textContent = sectionData["reference_for_species"] || "Not set";
+      reference.textContent = sectionData["reference"] || "Not set";
 
       versionDropdown.innerHTML = ""; // clear old options
 

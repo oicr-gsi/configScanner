@@ -6,7 +6,9 @@ assay_config_file="$CODE_BASE/shesmu/common/assay_info.jsonconfig"
 instance_a="research"
 instance_b="production-cap"
 
+[prefixes]
+research="RUO"
+
 [checks]
-assay = 'config::assay_info::get\(\S+\).versions\[\S+\].'
-project = 'olive::common::get_project_info\(\S+\).'
+assay = 'config::assay_info::get\(\S+\)\.versions\[\S+\]\.workflows\["(?P<workflow>[^"]+)"\]:\s*Any\s+v\s*==\s*"(?P<version>[^"]+)"'
 blacklist=['vidarr-u20-providencePipeline.shesmu','vidarr-u20-pbcmProjectMedipsPipe.shesmu']

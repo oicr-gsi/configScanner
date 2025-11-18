@@ -87,9 +87,10 @@ def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
             check_lines = check_lines.split("\n")
             for c in check_lines:
                 matcher: Match[str] | None = re.search(check_pattern, c)
-                if matcher and matcher.groupdict() and matcher.groupdict()['check']:
-                    checker = list_to_nested_dict(matcher.groupdict()['check'].split('.'))
-                    config_checks.update(checker)
+                if matcher and matcher.groupdict():
+                    if matcher.groupdict()['workflow'] and matcher.groupdict()['version']:
+                        checker = {matcher.groupdict()['workflow']: matcher.groupdict()['version']}
+                        config_checks.update(checker)
         except subprocess.CalledProcessError:
             print(f'WARNING: No Config Checks in the Olive {m_olive}')
 

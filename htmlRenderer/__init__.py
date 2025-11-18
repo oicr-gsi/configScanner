@@ -38,13 +38,13 @@ def today_date() -> str:
 """
    Using supplied data file path return html-compliant block
 """
-def convert2datachunk(input: str) -> str:
+def convert2datachunk(input_json: str) -> str:
     try:
-        with open(input, 'r') as inJson:
+        with open(input_json, 'r') as inJson:
             data_chunk = json.load(inJson)
             return json.dumps(data_chunk)
     except FileNotFoundError:
-        print(f'ERROR: Could not find file {input}')
+        print(f'ERROR: Could not find file {input_json}')
     except ValueError:
         print('ERROR: Could not read JSON data')
     return "{}"
@@ -53,7 +53,7 @@ def convert2datachunk(input: str) -> str:
 """
    Read the text of the script and return it as a str to embed into HTML page
 """
-def append_script(path: str)->str:
+def append_script(path: str) -> str:
     script_text = ""
     try:
         with open(path, 'r') as inScript:

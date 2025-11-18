@@ -5,9 +5,8 @@ import os
 from json import JSONDecodeError
 from typing import OrderedDict
 
-
 class configScanner:
-    REF_KEY = 'reference_for_species'
+    REF_KEY = 'reference'
 
     def __init__(self, config_data, olive_info, filters, output_json):
         self.report = {}
@@ -16,34 +15,34 @@ class configScanner:
             self.older_report = configScanner.load_report(output_json)
         self.versions_updated = False
         '''Get the data, make report'''
-        for assay in config_data.keys():  # TODO: logic needs to be re-worked
+        for assay in config_data.keys():
             '''If we have prefixes, check assay names'''
             if len(filters) > 0 and configScanner.filter_assay(filters, assay):
                 continue
-            '''Get reference info and put it in'''  #TODO : this will change in new format
+            '''Get reference info and put it in'''
             self.report[assay] = {}
             if 'versions' in config_data[assay].keys():
                 for version in config_data[assay]["versions"].keys():
-                    '''Get the reference if do not have it'''
+                    '''Get the reference if we have it'''
                     if self.REF_KEY not in self.report[assay].keys():
-                        self.extract_reference(config_data, assay, version)
+                        self.extract_reference(config_data, assay)
                     '''If we have version specified, account for it here'''
                     self.report[assay][version] = {}
                     self.construct_report(assay,
                                           version,
-                                          config_data[assay]["versions"][version],
+                                          config_data[assay]["versions"][version]["workflows"],
                                           olive_info)
 
     """
        filter is prepared by the main runConfigScanner block, we may have include or/and exclude hashes
     """
-    def extract_reference(self, config_data: dict, assay: str, version: str):
+    def extract_reference(self, config_data: dict, assay: str):
         try:
-            assay_ref = next(iter(config_data[assay]["versions"][version][self.REF_KEY].values()), None)
+            assay_ref = config_data[assay][self.REF_KEY]
             if assay_ref is not None:
                 self.report[assay][self.REF_KEY] = assay_ref[0] if isinstance(assay_ref, list) else assay_ref
         except:
-            print(f'WARNING: No Reference found for Assay {assay}')
+            print(f'ERROR: No Reference found for Assay {assay}')
 
     @staticmethod
     def filter_assay(filters: dict, assay_name: str):
@@ -59,7 +58,6 @@ class configScanner:
        Load old report, if exists. It is needed to track the versions of workflows which may have already
        been decommissioned. The construct_report function will use this info for updating vetted_report 
     """
-
     @staticmethod
     def load_report(path) -> dict:
         report_data = {}
@@ -73,13 +71,11 @@ class configScanner:
         return report_data
 
     '''Return the report dict to be used for HTML UI rendering'''
-
     def get_report(self):
         return self.report
 
     '''Save report into a .json file for further analysis'''
-
-    def save_report(self, output_json: str, instance: str):
+    def save_report(self, output_json: str):
         vetted_od = configScanner.deepsort_dict(self.get_report())
         with open(output_json, "w") as wfj:
             jstring = json.dumps(vetted_od, indent=2, ensure_ascii=False)
@@ -91,7 +87,6 @@ class configScanner:
             print(f"INFO: Saved assay report into a .json file {output_json}")
 
     '''Flatten a list of mixed types (str, list, set)'''
-
     @staticmethod
     def flat2gen(alist):
         for item in alist:
@@ -101,6 +96,7 @@ class configScanner:
             else:
                 yield item
 
+    '''This is for making things pretty, deep sort of nested dict such as final config or report'''
     @staticmethod
     def deepsort_dict(input_dict, key=lambda item: item[0]) -> dict:
         """
@@ -123,34 +119,22 @@ class configScanner:
         return OrderedDict(sorted_items)
 
     """
-       TODO: re-organize this as the config is becoming much more simple
-       The heart of this class - a function which verifies the configuration is enabled in 
-       assay_info config file when we have an olive check. In case when
-       olives checks for a setting:
-       * returns False when it is not enabled in .jsonconfig 
-       * returns True if this setting is enabled in the .jsonconfig or not None for pipelines
+       when we have an olive check:
+       returns False when it is not enabled in .jsonconfig 
     """
-
-    def is_ok_2run(self, d1, d2):
-        """Return True if all path->value in d2 that exist in d1 are not False or None in d1."""
+    @staticmethod
+    def is_ok_2run(d1, d2):
+        """Return True only if workflow version in d2 is also present in d1."""
         for k, v in d2.items():
             if k not in d1:
-                continue  # ignore missing branches
-
-            if isinstance(v, dict):
-                if not isinstance(d1[k], dict):
-                    return False
-                if not self.is_ok_2run(d1[k], v):
-                    return False
-            else:
-                if d1[k] in [False, None]:
-                    return False
-        return True
+                return False
+            if isinstance(d1[k], list):
+                return v in d1[k]
+        return False
 
     """
         A small utility function for vetting/tracking changes in version list (depends on settings and previous report)
     """
-
     def get_vetted_versions(self, oli_name: str, oli_tags: set, assay: str, assay_version: str) -> list:
         reported_olives = list(oli_tags)
         try:
@@ -173,7 +157,6 @@ class configScanner:
        Make sure we register values as the right type, also check if we have the same olive in report already -
        this takes care of multiple olive files running the same workflow
     """
-
     def safe_register(self, versions: list, assay: str, assay_version: str, olive_name: str):
         vetted_versions = versions
         try:
@@ -196,18 +179,18 @@ class configScanner:
        at this point we report all tags if an olive has appropriate check and produce a staging config with only
        olives with checks, no olives which are not checking assay_info settings
     """
-
     def construct_report(self, assay, assay_version, config: dict, olives: list):
         for oli in olives:
             try:
-                """Olive has checks, verify that it is enabled in the config
+                """
+                   Olive has checks, verify that it is enabled in the config
                    if an olive does not have checks, it will run regardless
                    if we have a dict with wf versions, use it
                 """
                 if (len(oli['checks']) > 0 and self.is_ok_2run(config, oli['checks'])) or len(oli['checks']) == 0:
                     for n in oli['names']:
                         '''Get info from version_check, add version from olive if the config is not frozen'''
-                        vetted_versions = oli['tags']
+                        vetted_versions = list(oli['tags'])
                         if len(self.older_report) > 0:
                             vetted_versions = self.get_vetted_versions(n, oli['tags'], assay, assay_version)
                         '''Handle lists of tags and single tags differently, single entry is a str type'''
