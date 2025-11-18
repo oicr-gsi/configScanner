@@ -13,12 +13,14 @@ from bs4 import BeautifulSoup as Bs
 def convert2page(input_data: str, script_path: str, instance: str):
     html = ("<!DOCTYPE html><head><meta charset=\"UTF-8\"><title>Config Scanner</title> \
             <link rel=\"stylesheet\" href=\"css/config_scanner.css\"> \
-            <style>body { font-family: sans-serif; padding: 20px; }select { margin-bottom: 20px; } \
+            <style>body { font-family: sans-serif; padding: 20px; } select { margin-bottom: 20px; } \
+            .reference { font-weight: bold; color: #3366cc; } \
             pre { background: #f4f4f4; padding: 10px; border-radius: 8px; }</style><script type=\"text/javascript\"> \
             readJson = function() { return " + convert2datachunk(input_data) + "} </script> </head>" +
             "<body><h2>Select an Assay and version to list the enabled workflows for [ " + instance + " ] shesmu</h2> \
-            <label for=\"assay\">Assay:</label><select id=\"assay\"><br> \
-            </select><label for=\"version\">Version:</label><select id=\"version\"></select><br> \
+            <label for=\"assay\">Assay:</label><select id=\"assay\"> \
+            </select><label for=\"version\">Version:</label><select id=\"version\"></select> \
+            <label for=\"reference\">Reference:</label><span id=\"reference\" class=\"reference-label\"></span><br> \
             <pre id=\"output\"></pre><script>" + append_script(script_path) + "</script>" + today_date() + "</body></html>")
     soup = Bs(html, "html.parser")
     return soup.prettify()

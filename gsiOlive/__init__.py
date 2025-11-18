@@ -11,22 +11,21 @@ from re import Match
 """
    Find olives, return dict with lists of files
 """
-def collect_olives(repo_dir: str, instances_list: list, blacklist: list, aliases: dict) -> dict:
-    olive_hash = {}
+def collect_olives(repo_dir: str, instance: str, blacklist: list, aliases: dict) -> list:
+    olive_list = []
     if repo_dir and os.path.isdir(repo_dir):
-        for inst in instances_list:
-            subdir = "/".join([repo_dir, inst])
+        subdir = "/".join([repo_dir, instance])
+        olive_files = glob.glob("/".join([subdir, "vidarr*.shesmu"]))
+        if len(olive_files) == 0 and instance in aliases.keys():
+            subdir = "/".join([repo_dir, "shesmu", aliases[instance]])
             olive_files = glob.glob("/".join([subdir, "vidarr*.shesmu"]))
-            if len(olive_files) == 0 and inst in aliases.keys():
-                subdir = "/".join([repo_dir, "shesmu", aliases[inst]])
-                olive_files = glob.glob("/".join([subdir, "vidarr*.shesmu"]))
-            print(f'INFO: We have {len(olive_files)} .shesmu files for {inst}')
-            if len(olive_files) > 0:
-                olive_hash[inst] = []
-            for oli in olive_files:
-                if len(blacklist) == 0 or basename(oli) not in blacklist:
-                    olive_hash[inst].append(oli)
-    return olive_hash
+        print(f'INFO: We have {len(olive_files)} .shesmu files for {instance}')
+        if len(olive_files) > 0:
+            olive_list = []
+        for oli in olive_files:
+            if len(blacklist) == 0 or basename(oli) not in blacklist:
+                olive_list.append(oli)
+    return olive_list
 
 
 """
@@ -64,7 +63,7 @@ def list_to_nested_dict(arr):
 """
 
 
-#TODO: we may need to make sure each olive goes into separate slot (as files may have multiple olives inside)
+# TODO: we may need to make sure each olive goes into separate slot (as files may have multiple olives inside)
 def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
     """ Return a list of Olive data structure(s) """
     parsed_olives = []
