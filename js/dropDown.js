@@ -25,7 +25,7 @@
       // Show value
       // 
       Object.keys(sectionData)
-        .filter(k => k !== "reference_for_species")
+        .filter(k => k !== "reference")
         .forEach(ver => {
           const opt = document.createElement("option");
           opt.value = ver;

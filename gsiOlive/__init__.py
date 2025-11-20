@@ -61,9 +61,6 @@ def list_to_nested_dict(arr):
      names = []
    }
 """
-
-
-# TODO: we may need to make sure each olive goes into separate slot (as files may have multiple olives inside)
 def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
     """ Return a list of Olive data structure(s) """
     parsed_olives = []
@@ -101,6 +98,9 @@ def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
                 vetted_tags.append(next_tag.group(1).replace("_", "."))
             if next_name is not None:
                 vetted_names.append(next_name.group(1))
+                if next_name in config_checks.keys():
+                    if next_tag and next_tag != config_checks[next_name]:
+                        print(f'ERROR: config check for {next_name} not using correct version in  {m_olive}')
 
         parsed_olives.append({'olives': [m_olive],
                               'tags': set(vetted_tags),

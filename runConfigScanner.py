@@ -72,24 +72,18 @@ def load_config(path):
 def save_config(conf_data: dict, output_conf: str):
     vetted_od = {"values": {}}
     try:
-        for assay in conf_data.keys():
-            vetted_od["values"][assay] = {"versions": {}}
-            for version in conf_data[assay].keys():
-                if version == configScanner.REF_KEY:
-                    vetted_od["values"][assay][version] = conf_data[assay][version]
-                else:
-                    vetted_od["values"][assay]["versions"][version] = {"workflows": {}}
-                    vetted_od["values"][assay]["versions"][version]["workflows"] = conf_data[assay][version]
+        vetted_od["values"].update(conf_data)
         vetted_od.update(CONF_HEADER)
         vetted_od = configScanner.deepsort_dict(vetted_od)
         with open(output_conf, "w") as wfj:
             jstring = json.dumps(vetted_od, indent=2, ensure_ascii=False)
             jstring = re.sub(r'(\[)\n', r'\1', jstring)
             jstring = re.sub(r'(\d\")\s+', r'\1', jstring)
+            jstring = re.sub(r'(\.\d\",)\s+', r'\1', jstring)
             jstring = re.sub(r'(\[)\s+', r'\1', jstring)
             jstring = re.sub(r'(\d\",)\n', r'\1', jstring)
             '''Take care of strings with reference'''
-            pattern_string = configScanner.REF_KEY + r"\S+\s+\S+"
+            pattern_string = configScanner.REF_KEY + r"\S+\s+\S+\d\","
             ptr = re.compile(f'({pattern_string})')
             jstring = re.sub(ptr, r'\1' + "\n", jstring)
             wfj.write(jstring)
@@ -133,6 +127,7 @@ if __name__ == '__main__':
     olive_info = {}
     blacklist = []
     combined_report = {}
+    combined_config = {}
     prefixes = {}
 
     if 'blacklist' in settings['checks'].keys():
@@ -159,9 +154,10 @@ if __name__ == '__main__':
         if len(olive_info[instance_to_scan]) > 0:
             filters = init_filters(prefixes, instance_to_scan)
             output_json = output_base + "_" + instance_to_scan + ".json"
-            confScanner = configScanner(config_data, olive_info[instance_to_scan], filters, output_json)
+            confScanner = configScanner(config_data, olive_info[instance_to_scan], filters)
             vetted_report = confScanner.get_report()
             combined_report.update(vetted_report)
+            combined_config.update(confScanner.get_staged_config())
             ''' 5. Dump the data into json file and generate a report HTML page '''
             if len(vetted_report) > 0:
                 confScanner.save_report(output_json)
@@ -172,6 +168,6 @@ if __name__ == '__main__':
         else:
             print("ERROR: Was not able to collect up-to-date information, examine this log and make changes")
 
-    save_config(combined_report, output_config)
+    save_config(combined_config, output_config)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

@@ -2,18 +2,16 @@ import collections
 import json
 import re
 import os
+from copy import deepcopy
 from json import JSONDecodeError
 from typing import OrderedDict
 
 class configScanner:
     REF_KEY = 'reference'
 
-    def __init__(self, config_data, olive_info, filters, output_json):
+    def __init__(self, config_data, olive_info, filters):
         self.report = {}
-        self.older_report = {}
-        if output_json is not None:
-            self.older_report = configScanner.load_report(output_json)
-        self.versions_updated = False
+        self.config = deepcopy(config_data)
         '''Get the data, make report'''
         for assay in config_data.keys():
             '''If we have prefixes, check assay names'''
@@ -42,7 +40,7 @@ class configScanner:
             if assay_ref is not None:
                 self.report[assay][self.REF_KEY] = assay_ref[0] if isinstance(assay_ref, list) else assay_ref
         except:
-            print(f'ERROR: No Reference found for Assay {assay}')
+            print(f"ERROR: No Reference found for Assay {assay}")
 
     @staticmethod
     def filter_assay(filters: dict, assay_name: str):
@@ -74,6 +72,10 @@ class configScanner:
     def get_report(self):
         return self.report
 
+    '''Return config which may get updates from an olive scan'''
+    def get_staged_config(self):
+        return self.config
+
     '''Save report into a .json file for further analysis'''
     def save_report(self, output_json: str):
         vetted_od = configScanner.deepsort_dict(self.get_report())
@@ -81,6 +83,7 @@ class configScanner:
             jstring = json.dumps(vetted_od, indent=2, ensure_ascii=False)
             jstring = re.sub(r'(\[)\n', r'\1', jstring)
             jstring = re.sub(r'(\d\")\s+', r'\1', jstring)
+            jstring = re.sub(r'(\d\",)\s+', r'\1', jstring)
             jstring = re.sub(r'(\[)\s+', r'\1', jstring)
             jstring = re.sub(r'(\d\",)\n', r'\1', jstring)
             wfj.write(jstring)
@@ -123,7 +126,7 @@ class configScanner:
        returns False when it is not enabled in .jsonconfig 
     """
     @staticmethod
-    def is_ok_2run(d1, d2):
+    def is_configured_2run(d1, d2):
         """Return True only if workflow version in d2 is also present in d1."""
         for k, v in d2.items():
             if k not in d1:
@@ -136,48 +139,50 @@ class configScanner:
         A small utility function for vetting/tracking changes in version list (depends on settings and previous report)
     """
     def get_vetted_versions(self, oli_name: str, oli_tags: set, assay: str, assay_version: str) -> list:
-        reported_olives = list(oli_tags)
+        configured_olives = list(oli_tags)
         try:
-            older_versions = self.older_report[assay][assay_version]
+            older_versions = self.config[assay]['versions'][assay_version]['workflows']
             if oli_name in older_versions.keys():
-                reported_olives = list(set(configScanner.flat2gen([reported_olives, older_versions[oli_name]])))
+                updated_olives = list(set(configScanner.flat2gen([list(oli_tags), older_versions[oli_name]])))
                 older_scan_list = older_versions[oli_name]
                 if isinstance(older_scan_list, str):
+                    print(f'WARNING: {oli_name} has version stored as str, not array')
                     older_scan_list = [older_scan_list]
-                if collections.Counter(reported_olives) != collections.Counter(older_scan_list):
+                if collections.Counter(updated_olives) != collections.Counter(older_scan_list):
                     print(f"INFO: We have a change for {oli_name} in {assay} version {assay_version}")
+                    configured_olives = updated_olives
         except ValueError:
             print(f"INFO: Could not find older report for {assay} version {assay_version}")
         except Exception as e:
             print(f"ERROR: problem with {e} in get_vetted_versions")
-        finally:
-            return reported_olives
+        return configured_olives
 
     """
        Make sure we register values as the right type, also check if we have the same olive in report already -
        this takes care of multiple olive files running the same workflow
     """
-    def safe_register(self, versions: list, assay: str, assay_version: str, olive_name: str):
-        vetted_versions = versions
-        try:
-            existing_tags = self.report[assay][assay_version][olive_name]
+    def safe_register(self, versions: list, assay: str, assay_version: str, o_name: str):
+        vetted_versions = list(versions)
+        if isinstance(self.report[assay][assay_version], dict) and o_name in self.report[assay][assay_version].keys():
+            existing_tags = self.report[assay][assay_version][o_name]
             if isinstance(existing_tags, str):
                 vetted_versions.append(existing_tags)
             elif isinstance(existing_tags, list):
                 for t in existing_tags:
                     vetted_versions.append(t)
-        except KeyError:
-            pass
         '''Make sure we have unique tags in the list'''
         if len(vetted_versions) > 1:
             vetted_versions = list(set(vetted_versions))
-        '''Make sure we register array all the time'''
-        self.report[assay][assay_version][olive_name] = sorted(vetted_versions)
+        '''Make sure we register array all the time, for config and report'''
+        self.report[assay][assay_version][o_name] = sorted(vetted_versions)
 
     """
-       fuses config assay_info and olive data. (Returns a dict with all workflows which run for a setting snippet
-       at this point we report all tags if an olive has appropriate check and produce a staging config with only
-       olives with checks, no olives which are not checking assay_info settings
+       fuses config assay_info and olive data:
+       * if the olive is in config and the version too, report
+       * if the olive in config but version is not, do not report but add to staging config
+       * if the olive is not in config and there are no checks, report
+       
+       in the config - no olives which are not checking assay_info settings
     """
     def construct_report(self, assay, assay_version, config: dict, olives: list):
         for oli in olives:
@@ -185,15 +190,17 @@ class configScanner:
                 """
                    Olive has checks, verify that it is enabled in the config
                    if an olive does not have checks, it will run regardless
-                   if we have a dict with wf versions, use it
                 """
-                if (len(oli['checks']) > 0 and self.is_ok_2run(config, oli['checks'])) or len(oli['checks']) == 0:
-                    for n in oli['names']:
-                        '''Get info from version_check, add version from olive if the config is not frozen'''
-                        vetted_versions = list(oli['tags'])
-                        if len(self.older_report) > 0:
+                for n in oli['names']:
+                    vetted_versions = oli['tags']
+                    if len(oli['checks']) > 0:
+                        if configScanner.is_configured_2run(config, oli['checks']):
+                            self.safe_register(vetted_versions, assay, assay_version, n)
+                        elif n in self.config[assay]['versions'][assay_version]['workflows'].keys():
+                            '''get_vetted_versions new olive tags with existing (configured) ones, if present'''
                             vetted_versions = self.get_vetted_versions(n, oli['tags'], assay, assay_version)
-                        '''Handle lists of tags and single tags differently, single entry is a str type'''
+                            self.config[assay]['versions'][assay_version]['workflows'][n] = sorted(vetted_versions)
+                    elif len(oli['checks']) == 0:
                         self.safe_register(vetted_versions, assay, assay_version, n)
             except Exception as e:
                 print(f"An error occurred: {e}")
