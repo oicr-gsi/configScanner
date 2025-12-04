@@ -35,7 +35,6 @@ would run given a particular assay/version combination with the following benefi
 * Ability to see which unwanted workflows are enabled for an assay
 * Spotting problems with checks in olives
 * Data to use with downstream reporting/analysis
-* Mainainance of a version control file (see below)
 
 # Running the script
 
@@ -62,7 +61,7 @@ Settings file specify various configuration parameters and at this point has 4 s
 * instances   - this is to specify our shesmu instances (clinical and research) - there may be changes in a future
 * checks      - regex patterns for finding assay_info checks in olives
 
-Script will run collecting workflow names as they are used in olives, then it will proceed to analyze this information
+Script will run collecting workflow names (aliases) as they are used in olives, then it will proceed to analyze this information
 together with assay settings. After bringing all of these data together, the script will output .json and .html reports
 
 # Workflow version control
