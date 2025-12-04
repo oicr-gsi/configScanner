@@ -79,7 +79,7 @@ The logic of version control can be also summarized as the following flowchart:
 As the diagram shows, we may have a situation when a new workflow appears in production environment we are 
 scanning. In this case the workflow version will be registered with all assays which are running it in a
 staging config file, changes must be transferred manually into the version-controlled assay_info.jsonconfig file.
-If there is no entry for a newly deployed workflow in existing configuration, ![flask UI](https://github.com/oicr-gsi/flask_ui) should be used to
+If there is no entry for a newly deployed workflow in existing configuration, [flask UI](https://github.com/oicr-gsi/flask_ui) should be used to
 enable the workflow where appropriate.
 
 # Running as a cron job
