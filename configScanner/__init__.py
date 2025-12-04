@@ -12,6 +12,7 @@ class configScanner:
     def __init__(self, config_data, olive_info, filters):
         self.report = {}
         self.config = deepcopy(config_data)
+        self.validate_olives(olive_info)
         '''Get the data, make report'''
         for assay in config_data.keys():
             '''If we have prefixes, check assay names'''
@@ -30,6 +31,21 @@ class configScanner:
                                           version,
                                           config_data[assay]["versions"][version]["workflows"],
                                           olive_info)
+
+    """
+       validate olives vs config file, report errors
+    """
+    def validate_olives(self, olive_info: dict):
+        a_wfs = []
+        avail_olives = []
+        for a in self.config.keys():
+            for a_version in self.config[a]['versions'].keys():
+                a_wfs.extend(w for w in list(self.config[a]['versions'][a_version]['workflows'].keys()))
+        for olive in olive_info:
+            avail_olives.extend(n for n in olive['names'])
+        for avail_olive in set(avail_olives):
+            if avail_olive not in a_wfs:
+                print(f'ERROR: Workflow {avail_olive} has an olive deployed but is not configured in assay_info')
 
     """
        filter is prepared by the main runConfigScanner block, we may have include or/and exclude hashes
