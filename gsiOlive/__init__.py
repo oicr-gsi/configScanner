@@ -92,12 +92,15 @@ def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
             print(f'WARNING: No Config Checks in the Olive {m_olive}')
 
         for rl in run_lines:
-            next_tag = re.search(r"v(\d+_\d+_*\d*\w*)$", rl)
-            next_name = re.search(r"(\S+)_v\d+_\d+_*\d*\w*$", rl)
+            next_run = re.search(r"(\S+)_v(\d+_\d+_*\d*\w*)$", rl)
+            if next_run is None:
+                continue
+            next_tag = next_run.group(2).replace("_", ".")
+            next_name = next_run.group(1)
             if next_tag is not None:
-                vetted_tags.append(next_tag.group(1).replace("_", "."))
+                vetted_tags.append(next_tag)
             if next_name is not None:
-                vetted_names.append(next_name.group(1))
+                vetted_names.append(next_name)
                 if next_name in config_checks.keys():
                     if next_tag and next_tag != config_checks[next_name]:
                         print(f'ERROR: config check for {next_name} not using correct version in  {m_olive}')
