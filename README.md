@@ -66,9 +66,9 @@ together with assay settings. After bringing all of these data together, the scr
 
 # Workflow version control
 
-Workflow version control is designed around checking and [manually] updating a version controlling .jsonconfig file. The syntax is 
-very similar to the syntax of the report file, but it may be used for controlling version of workflows for 
-selected assays/olive combinations
+Workflow version control is designed around checking and [manually] updating assay_info.jsonconfig file. The current format
+is a simplified version of previously used project_info.jsonconfig file, but now it may be used for controlling version of 
+workflows for selected assays/olive combinations
 
 ![Version control file](docs/Screenshot_workflowVersions.png)
 
@@ -78,8 +78,8 @@ The logic of version control can be also summarized as the following flowchart:
 
 As the diagram shows, we may have a situation when a new workflow appears in production environment we are 
 scanning. In this case the workflow version will be registered with all assays which are running it in a
-staging config file, changes must be transferred manually into the version-controlled assay_info.json file.
-If there is no entry for a newly deployed workflow in existing configuration, flask UI should be used to
+staging config file, changes must be transferred manually into the version-controlled assay_info.jsonconfig file.
+If there is no entry for a newly deployed workflow in existing configuration, ![flask UI](https://github.com/oicr-gsi/flask_ui) should be used to
 enable the workflow where appropriate.
 
 # Running as a cron job
