@@ -7,6 +7,10 @@
    By parsing both olives and assay config file we can get information on
    a) which checks the scanned olives are using to run workflows (and which version)
    b) are these flags set correctly in assay config file
+
+   configScanner does what can be called as matching expectations with reality, as it shows
+   what actually will run/is running in production instances by checking settings (assay_info.jsonconfig)
+   and the deployed olives which may or may not be checking for the respective flags.
 """
 import argparse
 import json
@@ -60,9 +64,9 @@ def load_config(path):
             if isinstance(json_data, dict) and 'values' in json_data.keys():
                 return json_data['values']
     except FileNotFoundError:
-        print("Error loading config data")
+        print(f"ERROR: cannot load config data from {path}")
     except JSONDecodeError:
-        print("ERROR: Config JSON file may be corrupted")
+        print(f"ERROR: Config {path} may be corrupted")
     return json_data
 
 """
@@ -99,6 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('-j', '--jscript', help="Path UI js", required=False, default="js/dropDown.js")
     parser.add_argument('-c', '--config', help="Staging config", required=False, default="assay_staging.jsonconfig")
     parser.add_argument('-p', '--outpage', help='HTML page basename', required=False, default="running_workflows")
+    parser.add_argument('-l', '--log', help="configScanner log file", required=False)
     args = parser.parse_args()
 
     settings_path = args.settings
@@ -106,6 +111,7 @@ if __name__ == '__main__':
     output_page = args.outpage
     java_script = args.jscript
     output_config = args.config
+    log_file = args.log
 
     if not java_script or not os.path.exists(java_script):
         print("ERROR: Cannot access non-optional file with java script!")
@@ -161,12 +167,16 @@ if __name__ == '__main__':
             ''' 5. Dump the data into json file and generate a report HTML page '''
             if len(vetted_report) > 0:
                 confScanner.save_report(output_json)
-                html_page = htmlRenderer.convert2page(output_json, java_script, instance_to_scan)
+                html_page = htmlRenderer.convert2page(output_json,
+                                                      java_script,
+                                                      instance_to_scan,
+                                                      log_file,
+                                                      confScanner.get_errors())
                 instance_page = output_page + "_" + instance_to_scan + ".html"
                 with open(instance_page, 'w') as op:
                     op.write(html_page)
         else:
-            print("ERROR: Was not able to collect up-to-date information, examine this log and make changes")
+            print(f"ERROR: Was not able to collect up-to-date information for {instance_to_scan}, no olives")
 
     save_config(combined_config, output_config)
 

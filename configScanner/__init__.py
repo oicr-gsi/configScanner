@@ -11,6 +11,7 @@ class configScanner:
 
     def __init__(self, config_data, olive_info, filters):
         self.report = {}
+        self.errors = 0
         self.config = deepcopy(config_data)
         self.validate_olives(olive_info)
         '''Get the data, make report'''
@@ -46,6 +47,7 @@ class configScanner:
         for avail_olive in set(avail_olives):
             if avail_olive not in a_wfs:
                 print(f'ERROR: Workflow {avail_olive} has an olive deployed but is not configured in assay_info')
+                self.errors += 1
 
     """
        filter is prepared by the main runConfigScanner block, we may have include or/and exclude hashes
@@ -57,6 +59,7 @@ class configScanner:
                 self.report[assay][self.REF_KEY] = assay_ref[0] if isinstance(assay_ref, list) else assay_ref
         except:
             print(f"ERROR: No Reference found for Assay {assay}")
+            self.errors += 1
 
     @staticmethod
     def filter_assay(filters: dict, assay_name: str):
@@ -87,6 +90,10 @@ class configScanner:
     '''Return the report dict to be used for HTML UI rendering'''
     def get_report(self):
         return self.report
+
+    '''Return number of errors (this is instance-specific, need to be checked in runConfigScanner)'''
+    def get_errors(self):
+        return self.errors
 
     '''Return config which may get updates from an olive scan'''
     def get_staged_config(self):
@@ -171,6 +178,7 @@ class configScanner:
             print(f"INFO: Could not find older report for {assay} version {assay_version}")
         except Exception as e:
             print(f"ERROR: problem with {e} in get_vetted_versions")
+            self.errors += 1
         return configured_olives
 
     """
@@ -221,3 +229,4 @@ class configScanner:
             except Exception as e:
                 print(f"An error occurred: {e}")
                 print("ERROR: Could not construct workflow report given the inputs")
+                self.errors += 1

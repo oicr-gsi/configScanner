@@ -1,16 +1,18 @@
 """
    This module provides functions for converting json to html and formatting
    it into a proper HTML page. All hardcoded stuff is here!
+   
+   Note that we pass a number of errors which is instance-specific
 """
 import datetime
 import json
+import os.path
 from bs4 import BeautifulSoup as Bs
-
 
 """
    Return JSON rendered into HTML table
 """
-def convert2page(input_data: str, script_path: str, instance: str):
+def convert2page(input_data: str, script_path: str, instance: str, log_file: str, errors: int = 0):
     html = ("<!DOCTYPE html><head><meta charset=\"UTF-8\"><title>Config Scanner</title> \
             <link rel=\"stylesheet\" href=\"css/config_scanner.css\"> \
             <style>body { font-family: sans-serif; padding: 20px; } select { margin-bottom: 20px; } \
@@ -21,7 +23,8 @@ def convert2page(input_data: str, script_path: str, instance: str):
             <label for=\"assay\">Assay:</label><select id=\"assay\"> \
             </select><label for=\"version\">Version:</label><select id=\"version\"></select> \
             <label for=\"reference\">Reference:</label><span id=\"reference\" class=\"reference-label\"></span><br> \
-            <pre id=\"output\"></pre><script>" + append_script(script_path) + "</script>" + today_date() + "</body></html>")
+            <pre id=\"output\"></pre><script>" + append_script(script_path) + "</script>" + today_date() +
+            "<br>" + process_log(log_file, errors) + "</body></html>")
     soup = Bs(html, "html.parser")
     return soup.prettify()
 
@@ -64,3 +67,19 @@ def append_script(path: str) -> str:
         print(f"ERROR: Could not read from {path} to load the javascript")
         exit(1)
     return script_text
+
+"""
+   Process log file:
+   * if file exists, provide a link
+   * in addition, if there are any errors show an indicator with a number of errors
+"""
+def process_log(path: str, errors: int):
+
+    if path is None or not os.path.exists(path):
+        return ""
+
+    '''Check the number of errors, alert if it is not zero'''
+    if errors > 0:
+        return "Errors: " + str(errors) + "<br><br><a href=" + path + ">See full Log</a>"
+    else:
+        return "<a href=" + path + ">See full Log</a>"
