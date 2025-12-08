@@ -54,11 +54,13 @@ Following options are available:
 * -c Staging config name, default is assay_staging.jsonconfig
 * -p Output HTML page basename (Default is running_workflows)
 * -j Path to JavaScript file for embedding into HTML report page (default is js/dropDown.js)
+* -l Path to log file which configScanner writes into (this is optional but if passed, will be linked to in the html report)
 
 Settings file specify various configuration parameters and at this point has 4 sections:
 
 * data        - information related to repos for olives
 * instances   - this is to specify our shesmu instances (clinical and research) - there may be changes in a future
+* prefixes    - this allows to separate instance-specific configurations (research and clinical)
 * checks      - regex patterns for finding assay_info checks in olives
 
 Script will run collecting workflow names (aliases) as they are used in olives, then it will proceed to analyze this information
