@@ -1,9 +1,4 @@
 # configScanner
-A tracker showing which workflows would run for a given assay. Takes in account both the setting 
-for assays and existing checks in olives. If available, version control .jsonconfig will be checked
-if a workflow version is specified in this file, it will override the version information
-from an olive scan. 
-
 These scripts are for getting information from Bitbucket analysis-config repository. They read
 olive files and assay configuration file combining this information and presenting a list of 
 workflows which would run for a given assay given exisiting settings. Reported data may be used
@@ -38,15 +33,15 @@ assay_info.jsonconfig file is also scanned and analyzed. The final report indica
 would run given a particular assay/version combination with the following benefits:
 
 * Ability to see which unwanted workflows are enabled for an assay
+* Spotting problems with checks in olives
 * Data to use with downstream reporting/analysis
-* Mainainance of a version control file (see below)
 
 # Running the script
 
-The script should be run as 
+The script can be run as
 
 ```
-  python3 runConfigScanner.py -i [INSTANCE] -o [OUTPUT_JSON] -j [PATH TO JS] -r [VERSIONS_FILE] -p [OUTPUT HTML]
+  python3 runConfigScanner.py 
 
 ```
 
@@ -55,26 +50,27 @@ The script should be run as
 Following options are available:
 
 * -s Settings file in TOML format (Default is config.toml)
-* -i Instance to scan - this is required, has to match the directory in code repository with olive files
-* -o Output json, data dump       (Default is enabled_workflows.jsoni, this is also checked and updated)
-* -p Output HTML page             (Default is running_workflows.html)
-* -j Path to JavaScript file for embedding into HTML report page
-* -r Path to version control file, not required but can be used to control versions of enabled workflows
+* -o Output base name, for data dump (Default is enabled_workflows)
+* -c Staging config name, default is assay_staging.jsonconfig
+* -p Output HTML page basename (Default is running_workflows)
+* -j Path to JavaScript file for embedding into HTML report page (default is js/dropDown.js)
+* -l Path to log file which configScanner writes into (this is optional but if passed, will be linked to in the html report)
 
 Settings file specify various configuration parameters and at this point has 4 sections:
 
 * data        - information related to repos for olives
 * instances   - this is to specify our shesmu instances (clinical and research) - there may be changes in a future
+* prefixes    - this allows to separate instance-specific configurations (research and clinical)
 * checks      - regex patterns for finding assay_info checks in olives
 
-Script will run collecting workflow names as they are used in olives, then it will proceed to analyze this information
+Script will run collecting workflow names (aliases) as they are used in olives, then it will proceed to analyze this information
 together with assay settings. After bringing all of these data together, the script will output .json and .html reports
 
 # Workflow version control
 
-Workflow version control is designed around checking and [manually] updating a version controlling .jsonconfig file. The syntax is 
-very similar to the syntax of the report file, but it may be used for controlling version of workflows for 
-selected assays/olive combinations
+Workflow version control is designed around checking and [manually] updating assay_info.jsonconfig file. The current format
+is a simplified version of previously used project_info.jsonconfig file, but now it may be used for controlling version of 
+workflows for selected assays/olive combinations
 
 ![Version control file](docs/Screenshot_workflowVersions.png)
 
@@ -83,8 +79,10 @@ The logic of version control can be also summarized as the following flowchart:
 ![Version control schema](docs/Screenshot_workflowVersionsFlowchart.png)
 
 As the diagram shows, we may have a situation when a new workflow appears in production environment we are 
-scanning. In this case the workflow version will be registered with all assays which are running it unless
-the configuration is controlled by version control .jsonconfig (the latter is very rare).
+scanning. In this case the workflow version will be registered with all assays which are running it in a
+staging config file, changes must be transferred manually into the version-controlled assay_info.jsonconfig file.
+If there is no entry for a newly deployed workflow in existing configuration, [flask UI](https://github.com/oicr-gsi/flask_ui) should be used to
+enable the workflow where appropriate.
 
 # Running as a cron job
 

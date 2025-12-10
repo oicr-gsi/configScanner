@@ -2,14 +2,15 @@
    Config scanner uses some ideas (and code) from workflowTracker, but to a small extent
    and modified (simplified) for local file parsing. It uses .toml configuration file to
    point the scripts to the directories with olives (.shesmu instruction files) and configuration
-   file for assays (assay_info.jsonconfig). It may also take a path to a version control file
-   which tracks the versions of workflows used by various assays. A special freeze flag allows
-   to prevent updates to existing records, making it possible to run multiple versions of the same
-   workflow in parallel, for specific assays
+   file for assays (assay_info.jsonconfig).
 
    By parsing both olives and assay config file we can get information on
-   a) which flags the scanned olives are using to run workflows (and which version)
-   b) are these flags set to 'enable' in assay config file
+   a) which checks the scanned olives are using to run workflows (and which version)
+   b) are these flags set correctly in assay config file
+
+   configScanner does what can be called as matching expectations with reality, as it shows
+   what actually will run/is running in production instances by checking settings (assay_info.jsonconfig)
+   and the deployed olives which may or may not be checking for the respective flags.
 """
 import argparse
 import json
@@ -22,7 +23,8 @@ from configScanner import configScanner
 import gsiOlive
 import htmlRenderer
 
-
+CONF_HEADER = {"missingUsesDefaults": False, "types": {"versions": {"is": "dictionary", "key": "s",
+               "value": {"fields": {"workflows": "msas"}, "is": "object"}}, "reference": "s"}}
 """
    Load settings file and return a dict with obtained values
 """
@@ -34,6 +36,21 @@ def load_settings(path):
     except tomli.TOMLDecodeError:
         print("Failed to load settings, invalid format")
     return toml_dict
+
+"""
+   Initialize filter dict. if we have matching prefix, put in include if there is a non-matching prefix
+   put it in exclude
+"""
+def init_filters(prefs: dict, instance: str):
+    p_filters = {}
+    if isinstance(prefs, dict) and len(prefs) > 0:
+        for p in prefs.keys():
+            rule = 'include' if p == instance else 'exclude'
+            if rule in p_filters.keys():
+                p_filters[rule].append(prefs[p])
+            else:
+                p_filters[rule] = [prefs[p]]
+    return p_filters
 
 
 """
@@ -47,54 +64,80 @@ def load_config(path):
             if isinstance(json_data, dict) and 'values' in json_data.keys():
                 return json_data['values']
     except FileNotFoundError:
-        print("Error loading config data")
+        print(f"ERROR: cannot load config data from {path}")
     except JSONDecodeError:
-        print("ERROR: Config JSON file may be corrupted")
+        print(f"ERROR: Config {path} may be corrupted")
     return json_data
+
+"""
+   this should take in account both older ground truth (assay_info.jsonconfig) settings and all olives with checks
+   update older information in ground truth with what we got from olive/assay_info scan and print into a file
+"""
+def save_config(conf_data: dict, output_conf: str):
+    vetted_od = {"values": {}}
+    try:
+        vetted_od["values"].update(conf_data)
+        vetted_od.update(CONF_HEADER)
+        vetted_od = configScanner.deepsort_dict(vetted_od)
+        with open(output_conf, "w") as wfj:
+            jstring = json.dumps(vetted_od, indent=2, ensure_ascii=False)
+            jstring = re.sub(r'(\[)\n', r'\1', jstring)
+            jstring = re.sub(r'(\d\")\s+', r'\1', jstring)
+            jstring = re.sub(r'(\.\d\",)\s+', r'\1', jstring)
+            jstring = re.sub(r'(\[)\s+', r'\1', jstring)
+            jstring = re.sub(r'(\d\",)\n', r'\1', jstring)
+            '''Take care of strings with reference'''
+            pattern_string = configScanner.REF_KEY + r"\S+\s+\S+\d\","
+            ptr = re.compile(f'({pattern_string})')
+            jstring = re.sub(ptr, r'\1' + "\n", jstring)
+            wfj.write(jstring)
+            print(f"INFO: Saved assay config into a .jsonconfig file {output_conf}")
+    except:
+        print(f"ERROR: writing to a config file {output_conf} failed")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run parsing script to generate assay scan report table')
     parser.add_argument('-s', '--settings', help='Settings file in TOML format', required=False, default="config.toml")
-    parser.add_argument('-i', '--instance', help='Instance to scan', required=True)
-    parser.add_argument('-o', '--out-json', help='Output json', required=False, default="enabled_workflows.json")
-    parser.add_argument('-j', '--jscript', help="Pass to HTML UI javascript", required=True)
-    parser.add_argument('-r', '--versions', help="Pass an optional json file with version info", required=False)
-    parser.add_argument('-p', '--outpage', help='Output page, HTML', required=False, default="running_workflows.html")
+    parser.add_argument('-o', '--out-prefix', help='Output base name', required=False, default="enabled_workflows")
+    parser.add_argument('-j', '--jscript', help="Path UI js", required=False, default="js/dropDown.js")
+    parser.add_argument('-c', '--config', help="Staging config", required=False, default="assay_staging.jsonconfig")
+    parser.add_argument('-p', '--outpage', help='HTML page basename', required=False, default="running_workflows")
+    parser.add_argument('-l', '--log', help="configScanner log file", required=False)
     args = parser.parse_args()
 
     settings_path = args.settings
-    instance_to_scan = args.instance
-    output_json = args.out_json
+    output_base = args.out_prefix
     output_page = args.outpage
     java_script = args.jscript
-    version_file = args.versions
+    output_config = args.config
+    log_file = args.log
+
+    if not java_script or not os.path.exists(java_script):
+        print("ERROR: Cannot access non-optional file with java script!")
+        exit(1)
+
     ''' 1. Load settings'''
     settings = load_settings(settings_path)
 
-    if instance_to_scan not in settings["instances"].values():
-        print(f"ERROR: instance {instance_to_scan} is not configured, aborting")
-        exit(1)
-    ''' If we do not have version file, try to find it in the repo dir '''
-    if version_file is None and "version_file" in settings['data'].keys():
-        version_file = settings['data']['version_file']
     ''' 2. We have search patterns in config file, compile them here '''
     config_check = None
     try:
         check_pattern = settings["checks"]["assay"]
-        config_check = re.compile(f'({check_pattern})' + '(?P<check>\\S+)')
+        config_check = re.compile(rf'({check_pattern})')
     except:
         print("Failed to compile a search pattern for olive check detection")
 
     ''' 3. collect and process olives, extract modules and tags '''
-    olive_files = {}
+    olive_files = []
     olive_info = {}
     blacklist = []
+    combined_report = {}
+    combined_config = {}
+    prefixes = {}
+
     if 'blacklist' in settings['checks'].keys():
         blacklist = settings['checks']['blacklist']
-
-    olive_files = gsiOlive.collect_olives(settings["data"]["local_olive_dir"], [instance_to_scan], blacklist, {})
-    olive_info = gsiOlive.parse_olives(olive_files[instance_to_scan], config_check)
 
     ''' 4. with loaded config file check the assays for enabled workflows and construct the report '''
     try:
@@ -103,23 +146,38 @@ if __name__ == '__main__':
         print("No config file configured in the settings")
         exit(1)
 
-    '''Load and update the version settings, if available'''
-    confScanner = configScanner(config_data, olive_info, output_json, version_file)
-    vetted_report = confScanner.get_report()
+    ''' 5. check for instance-specific assay prefixes '''
+    try:
+        prefixes = settings["prefixes"]
+    except:
+        print("No instance-specific prefixes found")
 
-    '''Check that we have a non-optional javascript file'''
-    if not java_script or not os.path.exists(java_script):
-        print("ERROR: Cannot access non-optional file with java script!")
-        exit(1)
+    for instance_to_scan in settings['instances'].values():
+        olive_files = gsiOlive.collect_olives(settings["data"]["local_olive_dir"], instance_to_scan, blacklist, {})
+        olive_info[instance_to_scan] = gsiOlive.parse_olives(olive_files, config_check)
+        vetted_report = {}
+        '''Load and update the version settings, if available'''
+        if len(olive_info[instance_to_scan]) > 0:
+            filters = init_filters(prefixes, instance_to_scan)
+            output_json = output_base + "_" + instance_to_scan + ".json"
+            confScanner = configScanner(config_data, olive_info[instance_to_scan], filters)
+            vetted_report = confScanner.get_report()
+            combined_report.update(vetted_report)
+            combined_config.update(confScanner.get_staged_config())
+            ''' 5. Dump the data into json file and generate a report HTML page '''
+            if len(vetted_report) > 0:
+                confScanner.save_report(output_json)
+                html_page = htmlRenderer.convert2page(output_json,
+                                                      java_script,
+                                                      instance_to_scan,
+                                                      log_file,
+                                                      confScanner.get_errors())
+                instance_page = output_page + "_" + instance_to_scan + ".html"
+                with open(instance_page, 'w') as op:
+                    op.write(html_page)
+        else:
+            print(f"ERROR: Was not able to collect up-to-date information for {instance_to_scan}, no olives")
 
-    ''' 5. Dump the data into json file and generate a report HTML page '''
-    if len(vetted_report) > 0:
-        confScanner.save_report(output_json)
-        html_page = htmlRenderer.convert2page(output_json, java_script, instance_to_scan)
-        with open(output_page, 'w') as op:
-            op.write(html_page)
-    else:
-        print("ERROR: Was not able to collect up-to-date information, examine this log and make changes")
-
+    save_config(combined_config, output_config)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

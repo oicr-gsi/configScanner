@@ -11,22 +11,21 @@ from re import Match
 """
    Find olives, return dict with lists of files
 """
-def collect_olives(repo_dir: str, instances_list: list, blacklist: list, aliases: dict) -> dict:
-    olive_hash = {}
+def collect_olives(repo_dir: str, instance: str, blacklist: list, aliases: dict) -> list:
+    olive_list = []
     if repo_dir and os.path.isdir(repo_dir):
-        for inst in instances_list:
-            subdir = "/".join([repo_dir, inst])
+        subdir = "/".join([repo_dir, instance])
+        olive_files = glob.glob("/".join([subdir, "vidarr*.shesmu"]))
+        if len(olive_files) == 0 and instance in aliases.keys():
+            subdir = "/".join([repo_dir, "shesmu", aliases[instance]])
             olive_files = glob.glob("/".join([subdir, "vidarr*.shesmu"]))
-            if len(olive_files) == 0 and inst in aliases.keys():
-                subdir = "/".join([repo_dir, "shesmu", aliases[inst]])
-                olive_files = glob.glob("/".join([subdir, "vidarr*.shesmu"]))
-            print(f'INFO: We have {len(olive_files)} .shesmu files for {inst}')
-            if len(olive_files) > 0:
-                olive_hash[inst] = []
-            for oli in olive_files:
-                if len(blacklist) == 0 or basename(oli) not in blacklist:
-                    olive_hash[inst].append(oli)
-    return olive_hash
+        print(f'INFO: We have {len(olive_files)} .shesmu files for {instance}')
+        if len(olive_files) > 0:
+            olive_list = []
+        for oli in olive_files:
+            if len(blacklist) == 0 or basename(oli) not in blacklist:
+                olive_list.append(oli)
+    return olive_list
 
 
 """
@@ -62,9 +61,6 @@ def list_to_nested_dict(arr):
      names = []
    }
 """
-
-
-#TODO: we may need to make sure each olive goes into separate slot (as files may have multiple olives inside)
 def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
     """ Return a list of Olive data structure(s) """
     parsed_olives = []
@@ -88,19 +84,26 @@ def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
             check_lines = check_lines.split("\n")
             for c in check_lines:
                 matcher: Match[str] | None = re.search(check_pattern, c)
-                if matcher and matcher.groupdict() and matcher.groupdict()['check']:
-                    checker = list_to_nested_dict(matcher.groupdict()['check'].split('.'))
-                    config_checks.update(checker)
+                if matcher and matcher.groupdict():
+                    if matcher.groupdict()['workflow'] and matcher.groupdict()['version']:
+                        checker = {matcher.groupdict()['workflow']: matcher.groupdict()['version']}
+                        config_checks.update(checker)
         except subprocess.CalledProcessError:
             print(f'WARNING: No Config Checks in the Olive {m_olive}')
 
         for rl in run_lines:
-            next_tag = re.search(r"v(\d+_\d+_*\d*\w*)$", rl)
-            next_name = re.search(r"(\S+)_v\d+_\d+_*\d*\w*$", rl)
+            next_run = re.search(r"(\S+)_v(\d+_\d+_*\d*\w*)$", rl)
+            if next_run is None:
+                continue
+            next_tag = next_run.group(2).replace("_", ".")
+            next_name = next_run.group(1)
             if next_tag is not None:
-                vetted_tags.append(next_tag.group(1).replace("_", "."))
+                vetted_tags.append(next_tag)
             if next_name is not None:
-                vetted_names.append(next_name.group(1))
+                vetted_names.append(next_name)
+                if next_name in config_checks.keys():
+                    if next_tag and next_tag != config_checks[next_name]:
+                        print(f'ERROR: config check for {next_name} not using correct version in  {m_olive}')
 
         parsed_olives.append({'olives': [m_olive],
                               'tags': set(vetted_tags),
