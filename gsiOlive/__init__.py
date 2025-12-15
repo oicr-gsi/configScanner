@@ -64,11 +64,12 @@ def list_to_nested_dict(arr):
 def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
     """ Return a list of Olive data structure(s) """
     parsed_olives = []
+    errors = 0
     ''' extract versions of the Workflow, names and modules'''
     for m_olive in olive_files:
         vetted_tags = []
         vetted_names = []
-        config_checks = {}
+        config_checks = []
         try:
             run_lines = subprocess.check_output(f"grep 'Run ' '{m_olive}'", shell=True).decode().strip()
             run_lines = run_lines.split("\n")
@@ -87,10 +88,11 @@ def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
                 if matcher and matcher.groupdict():
                     if matcher.groupdict()['workflow'] and matcher.groupdict()['version']:
                         checker = {matcher.groupdict()['workflow']: matcher.groupdict()['version']}
-                        config_checks.update(checker)
+                        config_checks.append(checker)
         except subprocess.CalledProcessError:
             print(f'WARNING: No Config Checks in the Olive {m_olive}')
 
+        run_index = 0
         for rl in run_lines:
             next_run = re.search(r"(\S+)_v(\d+_\d+_*\d*\w*)$", rl)
             if next_run is None:
@@ -101,12 +103,17 @@ def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
                 vetted_tags.append(next_tag)
             if next_name is not None:
                 vetted_names.append(next_name)
-                if next_name in config_checks.keys():
-                    if next_tag and next_tag != config_checks[next_name]:
-                        print(f'ERROR: config check for {next_name} not using correct version in  {m_olive}')
+                if next_name and next_tag and len(config_checks) >= run_index + 1:
+                    if next_name in config_checks[run_index].keys() and next_tag != config_checks[run_index][next_name]:
+                        print(f'ERROR: config check for {next_name} not using correct version in {m_olive}')
+                        errors += 1
+                elif not any(next_name in d for d in config_checks):
+                    print(f'ERROR: workflow {next_name} is not being checked properly')
+                    errors += 1
+            run_index += 1
 
         parsed_olives.append({'olives': [m_olive],
                               'tags': set(vetted_tags),
                               'checks': config_checks,
                               'names': set(vetted_names)})
-    return parsed_olives
+    return [parsed_olives, errors]

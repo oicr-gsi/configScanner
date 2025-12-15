@@ -46,7 +46,7 @@ class configScanner:
             avail_olives.extend(n for n in olive['names'])
         for avail_olive in set(avail_olives):
             if avail_olive not in a_wfs:
-                print(f'ERROR: Workflow {avail_olive} has an olive deployed but is not configured in assay_info')
+                print(f'WARNING: Workflow {avail_olive} has an olive deployed but is not configured in assay_info')
                 self.errors += 1
 
     """
@@ -217,14 +217,15 @@ class configScanner:
                 """
                 for n in oli['names']:
                     vetted_versions = oli['tags']
-                    if len(oli['checks']) > 0:
-                        if configScanner.is_configured_2run(config, oli['checks']):
-                            self.safe_register(vetted_versions, assay, assay_version, n)
-                        elif n in self.config[assay]['versions'][assay_version]['workflows'].keys():
+                    if len(oli['checks']) > 0 and any(n in d for d in oli['checks']):
+                        for o_check in oli['checks']:
+                            if n in o_check.keys() and configScanner.is_configured_2run(config, o_check):
+                                self.safe_register(vetted_versions, assay, assay_version, n)
+                        if n in self.config[assay]['versions'][assay_version]['workflows'].keys():
                             '''get_vetted_versions new olive tags with existing (configured) ones, if present'''
                             vetted_versions = self.get_vetted_versions(n, oli['tags'], assay, assay_version)
                             self.config[assay]['versions'][assay_version]['workflows'][n] = sorted(vetted_versions)
-                    elif len(oli['checks']) == 0:
+                    else:
                         self.safe_register(vetted_versions, assay, assay_version, n)
             except Exception as e:
                 print(f"An error occurred: {e}")

@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
     for instance_to_scan in settings['instances'].values():
         olive_files = gsiOlive.collect_olives(settings["data"]["local_olive_dir"], instance_to_scan, blacklist, {})
-        olive_info[instance_to_scan] = gsiOlive.parse_olives(olive_files, config_check)
+        olive_info[instance_to_scan], olive_errors = gsiOlive.parse_olives(olive_files, config_check)
         vetted_report = {}
         '''Load and update the version settings, if available'''
         if len(olive_info[instance_to_scan]) > 0:
@@ -164,6 +164,7 @@ if __name__ == '__main__':
             vetted_report = confScanner.get_report()
             combined_report.update(vetted_report)
             combined_config.update(confScanner.get_staged_config())
+            confScanner.errors += olive_errors
             ''' 5. Dump the data into json file and generate a report HTML page '''
             if len(vetted_report) > 0:
                 confScanner.save_report(output_json)
