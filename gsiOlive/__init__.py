@@ -107,7 +107,7 @@ def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
                     if next_name in config_checks[run_index].keys() and next_tag != config_checks[run_index][next_name]:
                         print(f'ERROR: config check for {next_name} not using correct version in {m_olive}')
                         errors += 1
-                elif not any(next_name in d for d in config_checks):
+                elif not any(next_name in d for d in config_checks) and next_name != "bcl2fastq":
                     print(f'ERROR: workflow {next_name} is not being checked properly')
                     errors += 1
             run_index += 1
