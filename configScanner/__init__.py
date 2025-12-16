@@ -47,7 +47,6 @@ class configScanner:
         for avail_olive in set(avail_olives):
             if avail_olive not in a_wfs:
                 print(f'WARNING: Workflow {avail_olive} has an olive deployed but is not configured in assay_info')
-                self.errors += 1
 
     """
        filter is prepared by the main runConfigScanner block, we may have include or/and exclude hashes
