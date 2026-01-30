@@ -35,6 +35,7 @@ would run given a particular assay/version combination with the following benefi
 * Ability to see which unwanted workflows are enabled for an assay
 * Spotting problems with checks in olives
 * Data to use with downstream reporting/analysis
+* Overview of existing configuration is available
 
 # Running the script
 
@@ -49,12 +50,12 @@ The script can be run as
 
 Following options are available:
 
-* -s Settings file in TOML format (Default is config.toml)
-* -o Output base name, for data dump (Default is enabled_workflows)
-* -c Staging config name, default is assay_staging.jsonconfig
-* -p Output HTML page basename (Default is running_workflows)
+* -c Staging config name, default is assay_staging.jsonconfiga
 * -j Path to JavaScript file for embedding into HTML report page (default is js/dropDown.js)
 * -l Path to log file which configScanner writes into (this is optional but if passed, will be linked to in the html report)
+* -o Output base name, for data dump (Default is enabled_workflows)
+* -p Output HTML page basename (Default is running_workflows)
+* -s Settings file in TOML format (Default is config.toml)
 
 Settings file specify various configuration parameters and at this point has 4 sections:
 

@@ -7,7 +7,11 @@
 import datetime
 import json
 import os.path
+from collections import defaultdict
 from bs4 import BeautifulSoup as Bs
+from jinja2 import Environment, FileSystemLoader
+
+HTML_OVERVIEW = "config_overview.html"
 
 """
    Return JSON rendered into HTML table
@@ -24,7 +28,9 @@ def convert2page(input_data: str, script_path: str, instance: str, log_file: str
             </select><label for=\"version\">Version:</label><select id=\"version\"></select> \
             <label for=\"reference\">Reference:</label><span id=\"reference\" class=\"reference-label\"></span><br> \
             <pre id=\"output\"></pre><script>" + append_script(script_path) + "</script>" + today_date() +
-            "<br>" + process_log(log_file, errors) + "</body></html>")
+            "<br>" + process_log(log_file, errors) +
+            "<br><br><form action=\"" + HTML_OVERVIEW + "\"><input type=\"submit\" value=\"Config Overview\" /></form>" +
+            "</body></html>")
     soup = Bs(html, "html.parser")
     return soup.prettify()
 
@@ -83,3 +89,29 @@ def process_log(path: str, errors: int):
         return "Errors: " + str(errors) + "<br><br><a href=" + path + ">See full Log</a>"
     else:
         return "<a href=" + path + ">See full Log</a>"
+
+
+"""
+   In addition, render assay_info.jsonconfig entries as a table and write into config_overview.html
+   HTML file (or whatever value we have in HTML_OVERVIEW).
+"""
+
+def update_config_overview(overview_data: dict):
+    templates_dir = "templates"
+    env = Environment(loader=FileSystemLoader(templates_dir))
+    template = env.get_template('overview.html')
+
+    # Collect assay → versions mapping
+    assay_columns = defaultdict(list)
+    for row in overview_data.values():
+        for col in row.keys():
+            assay, version = col.split(":")
+            if version not in assay_columns[assay]:
+                assay_columns[assay].append(version)
+
+    for assay in assay_columns:
+        assay_columns[assay].sort()
+
+    output = template.render(data=overview_data, assay_columns=assay_columns)
+    with open(HTML_OVERVIEW, "w") as f:
+        f.write(output)

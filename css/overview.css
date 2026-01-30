@@ -1,0 +1,91 @@
+.matrix {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: max-content;
+}
+
+.matrix td[data-assay],
+.matrix th[data-assay] {
+  border-left: 2px solid #aaa;
+}
+
+.matrix th,
+.matrix td {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+.matrix thead th {
+  font-weight: bold;
+  background-color: #e6f4ea;
+  border-bottom: 2px solid #6fbf73;
+  text-align: center;
+}
+
+/* Version row: slightly lighter text */
+.version-header th {
+  font-weight: bold;
+}
+
+.missing {
+  color: #999;
+  font-style: italic;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Assay group header */
+.assay-header th {
+  background-color: #e6f4ea;   /* pale green */
+  font-weight: bold;
+  border-bottom: 2px solid #8bc48a;
+}
+
+.assay-group {
+  height: 370px;                 /* reserves vertical space */
+  padding: 0;
+  vertical-align: bottom;
+  border-right: 3px solid #6fbf73;   /* dark separator between assays */
+}
+
+.rotate-90 {
+  transform: rotate(-90deg);
+  transform-origin: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  white-space: nowrap;
+}
+
+/* Version header */
+.version-header th {
+  background-color: #f5f5f5;
+  font-weight: normal;
+}
+
+/* Workflow column */
+.workflow {
+  font-weight: bold;
+  text-align: right;
+  background-color: #fafafa;
+  padding-right: 10px;
+}
+
+/* oselctor class, used for select element for overview type */
+.oselector {
+  overflow-x: auto;
+  font-weight: bold;
+  max-width: 30%;
+}
+
+/* Missing values */
+.missing {
+  color: #999;
+  font-style: italic;
+  background-color: #fbfbfb;
+}
