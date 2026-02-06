@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overview of assay configurations</title>
+    <link rel="stylesheet" href="css/overview.css">
+</head>
+<body>
+<h1 class="ui left aligned header">Configuration Overview</h1>
+<div class="table-wrapper">
+<table class="matrix">
+  <thead>
+    <!-- Assay group row -->
+    <tr class="assay-header">
+      <th rowspan="2">Workflow</th>
+      {% for assay, versions in assay_columns.items() %}
+        <th colspan="{{ versions | length }}" class="assay-group">
+          <div class="rotate-90">{{ assay }}</div>
+        </th>
+      {% endfor %}
+    </tr>
+
+    <!-- Version row -->
+    <tr class="version-header">
+      {% for assay, versions in assay_columns.items() %}
+        {% for version in versions %}
+          <th>{{ version }}</th>
+        {% endfor %}
+      {% endfor %}
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for workflow, row in data | dictsort %}
+      <tr>
+        <td class="workflow">{{ workflow }}</td>
+
+        {% for assay, versions in assay_columns.items() %}
+          {% for version in versions %}
+            {% set key = assay ~ ":" ~ version %}
+            <td class="{% if key not in row %}missing{% endif %}">
+            {% for value in row.get(key, ["—"]) %}
+              <div>
+                {% if value == "0.0.0" %}
+                  XXX
+                {% else %}
+                  {{ value }}
+                {% endif %}
+              </div>
+            {% endfor %}
+            </td>
+          {% endfor %}
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+</body>
+</html>

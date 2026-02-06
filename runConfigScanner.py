@@ -95,6 +95,24 @@ def save_config(conf_data: dict, output_conf: str):
     except:
         print(f"ERROR: writing to a config file {output_conf} failed")
 
+"""
+    Pulled from flask UI, convert assay_info.jsonconfig data into dict suitable for rendering
+    a table with workflow versions organized by assay/assy_version
+"""
+def config_to_overview(data: dict) -> dict:
+    assay_overview = {}
+    try:
+        for a in data.keys():
+            for v in data[a]['versions'].keys():
+                for wf, wf_versions in data[a]['versions'][v]['workflows'].items():
+                    if wf not in assay_overview.keys():
+                        assay_overview[wf] = {}
+                    assay_key = a + ":" + v
+                    if isinstance(wf_versions, list) and len(wf_versions) > 0:
+                        assay_overview[wf][assay_key] = wf_versions
+    except KeyError:
+        print("ERROR: failed to parse configuration for overview generation")
+    return assay_overview
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run parsing script to generate assay scan report table')
@@ -152,9 +170,13 @@ if __name__ == '__main__':
     except:
         print("No instance-specific prefixes found")
 
+    ''' 6. render configuration for overview and save to a file '''
+    overview_data = config_to_overview(config_data)
+    htmlRenderer.update_config_overview(overview_data)
+
     for instance_to_scan in settings['instances'].values():
         olive_files = gsiOlive.collect_olives(settings["data"]["local_olive_dir"], instance_to_scan, blacklist, {})
-        olive_info[instance_to_scan] = gsiOlive.parse_olives(olive_files, config_check)
+        olive_info[instance_to_scan], olive_errors = gsiOlive.parse_olives(olive_files, config_check)
         vetted_report = {}
         '''Load and update the version settings, if available'''
         if len(olive_info[instance_to_scan]) > 0:
@@ -164,7 +186,8 @@ if __name__ == '__main__':
             vetted_report = confScanner.get_report()
             combined_report.update(vetted_report)
             combined_config.update(confScanner.get_staged_config())
-            ''' 5. Dump the data into json file and generate a report HTML page '''
+            confScanner.errors += olive_errors
+            ''' Dump the data into json file and generate a report HTML page '''
             if len(vetted_report) > 0:
                 confScanner.save_report(output_json)
                 html_page = htmlRenderer.convert2page(output_json,
