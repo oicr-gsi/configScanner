@@ -64,8 +64,10 @@ class configScanner:
     def filter_assay(filters: dict, assay_name: str):
         for f_type in filters.keys():
             for f in filters[f_type]:
-                if re.match(f, assay_name):
-                    return False if f_type == 'include' else True
+                prefixes = [f] if isinstance(f, str) else f
+                for p in prefixes:
+                    if re.match(p, assay_name):
+                        return False if f_type == 'include' else True
             if f_type == 'include':
                 return True
         return False

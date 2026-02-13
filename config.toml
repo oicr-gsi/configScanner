@@ -7,7 +7,7 @@ instance_a="research"
 instance_b="production-cap"
 
 [prefixes]
-research="RUO"
+research=["RUO","BYOD"]
 
 [checks]
 assay = 'config::assay_info::get\(\S+\)\.versions\[\S+\]\.workflows\["(?P<workflow>[^"]+)"\]:\s*Any\s+v\s*==\s*"(?P<version>[^"]+)"'
