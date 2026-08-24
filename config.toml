@@ -10,5 +10,5 @@ instance_b="production-cap"
 research=["RUO","BYOD"]
 
 [checks]
-assay = 'config::assay_info::get\(\S+\)\.versions\[\S+\]\.workflows\["(?P<workflow>[^"]+)"\]:\s*Any\s+v\s*==\s*"(?P<version>[^"]+)"'
-blacklist=['vidarr-u20-providencePipeline.shesmu','vidarr-u20-pbcmProjectMedipsPipe.shesmu']
+assay = 'olive::case_functions::select_active_cases'
+blacklist=['vidarr-u20-providencePipeline.shesmu','vidarr-u20-pbcmProjectMedipsPipe.shesmu','vidarr-u20-fileinjection.shesmu']

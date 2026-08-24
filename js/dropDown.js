@@ -18,14 +18,10 @@
       const section = sectionDropdown.value;
       const sectionData = data[section];
       
-      reference.textContent = sectionData["reference"] || "Not set";
-
       versionDropdown.innerHTML = ""; // clear old options
 
       // Show value
-      // 
       Object.keys(sectionData)
-        .filter(k => k !== "reference")
         .forEach(ver => {
           const opt = document.createElement("option");
           opt.value = ver;
@@ -39,10 +35,24 @@
 
     // Show selected JSON
     function updateOutput() {
+      const excludedKeys = ["resources"];
       const section = sectionDropdown.value;
       const version = versionDropdown.value;
-      const jsonPretty = JSON.stringify(data[section][version], null, 2);
-      output.textContent = jsonPretty.replace(/\[\s+([\s\S]*?)\s+\]/g, m =>m.replace(/\s+/g, '').replace(/,\]/, ']'))
+
+      try {
+        const selectedData = data[section][version];
+        reference.textContent = selectedData?.resources?.reference || "Not set";
+
+        const jsonPretty = JSON.stringify(
+          data[section][version],
+          (key, value) => excludedKeys.includes(key) ? undefined : value, 2
+        );
+        output.textContent = jsonPretty.replace(/\[\s+([\s\S]*?)\s+\]/g, m =>m.replace(/\s+/g, '').replace(/,\]/, ']'))
+      } catch(error) {
+        console.error("Could not display JSON:", error);
+        reference.textContent = "Not set";
+        output.textContent = "Data not available";
+      }
     }
 
     // Event listeners

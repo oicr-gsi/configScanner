@@ -11,6 +11,8 @@ from re import Match
 """
    Find olives, return dict with lists of files
 """
+
+
 def collect_olives(repo_dir: str, instance: str, blacklist: list, aliases: dict) -> list:
     olive_list = []
     if repo_dir and os.path.isdir(repo_dir):
@@ -31,6 +33,8 @@ def collect_olives(repo_dir: str, instance: str, blacklist: list, aliases: dict)
 """
    A simple subroutine for merging two hashes with Olive info
 """
+
+
 def merge_info(existing_hash: dict, new_hash: dict) -> dict:
     if isinstance(existing_hash, dict) and len(existing_hash) != 0:
         new_hash['olives'].extend(existing_hash['olives'])
@@ -43,6 +47,8 @@ def merge_info(existing_hash: dict, new_hash: dict) -> dict:
 """
    A utility function which takes a flat array as it's input and returns a nested dict
 """
+
+
 def list_to_nested_dict(arr):
     nested = current = {}
     for key in arr[:-1]:
@@ -53,14 +59,16 @@ def list_to_nested_dict(arr):
 
 
 """
-   Parse Olive: return a dict with tags names and checks
+   Parse Olive: return a dict with tags names
    {
      olives = []
      tags = []
-     checks = {}
+     checks = [NA|OK]
      names = []
    }
 """
+
+
 def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
     """ Return a list of Olive data structure(s) """
     parsed_olives = []
@@ -71,45 +79,36 @@ def parse_olives(olive_files: list, check_pattern: re.Pattern[str]) -> list:
         vetted_names = []
         config_checks = []
         try:
-            run_lines = subprocess.check_output(f"grep 'Run ' '{m_olive}'", shell=True).decode().strip()
-            run_lines = run_lines.split("\n")
-            if not isinstance(run_lines, list):
-                run_lines = [run_lines]
-        except subprocess.CalledProcessError:
-            print(f'WARNING: No Run lines in the Olive {m_olive}')
-            run_lines = []
+            check_ok = "NA"
+            with open(m_olive, 'r') as of:
+                olive_lines = of.readlines()
+            ''' Search for Run blocks, register the wf name and tag'''
+            for ol in olive_lines:
+                '''Search for a check, if present set the next Run block to OK'''
+                if re.search(check_pattern, ol):
+                    check_ok = "OK"
+                ''' Search for Run blocks, register the wf name and tag'''
+                next_run = re.search(r"(\S+)_v(\d+_\d+_*\d*\w*)$", ol)
+                if next_run is not None:
+                    next_tag = next_run.group(2).replace("_", ".")
+                    next_name = next_run.group(1)
+                    next_name = re.sub(r'^.*::', '', next_name) # Remove all crap before the workflow name
+                    if next_tag is not None:
+                        vetted_tags.append(next_tag)
+                    if next_name is not None:
+                        vetted_names.append(next_name)
+                    config_checks.append(check_ok)
+                    check_ok = "NA"
 
-        try:
-            check_lines = subprocess.check_output(f"grep -E 'assay_info|project_info' '{m_olive}'",
-                                                  shell=True).decode().strip()
-            check_lines = check_lines.split("\n")
-            for c in check_lines:
-                matcher: Match[str] | None = re.search(check_pattern, c)
-                if matcher and matcher.groupdict():
-                    if matcher.groupdict()['workflow'] and matcher.groupdict()['version']:
-                        checker = {matcher.groupdict()['workflow']: matcher.groupdict()['version']}
-                        config_checks.append(checker)
-        except subprocess.CalledProcessError:
-            print(f'WARNING: No Config Checks in the Olive {m_olive}')
+        except FileNotFoundError:
+            print(f'ERROR: Could not read from the olive {m_olive}')
+            errors += 1
 
         run_index = 0
-        for rl in run_lines:
-            next_run = re.search(r"(\S+)_v(\d+_\d+_*\d*\w*)$", rl)
-            if next_run is None:
-                continue
-            next_tag = next_run.group(2).replace("_", ".")
-            next_name = next_run.group(1)
-            if next_tag is not None:
-                vetted_tags.append(next_tag)
-            if next_name is not None:
-                vetted_names.append(next_name)
-                if next_name and next_tag and len(config_checks) >= run_index + 1:
-                    if next_name in config_checks[run_index].keys() and next_tag != config_checks[run_index][next_name]:
-                        print(f'ERROR: config check for {next_name} not using correct version in {m_olive}')
-                        errors += 1
-                elif not any(next_name in d for d in config_checks) and next_name != "bcl2fastq":
-                    print(f'ERROR: workflow {next_name} is not being checked properly')
-                    errors += 1
+        for vn in vetted_names:
+            if len(config_checks) < run_index + 1 or config_checks[run_index] == "NA":
+                print(f'ERROR: config check for {vn} is not present in {m_olive}')
+                errors += 1
             run_index += 1
 
         parsed_olives.append({'olives': [m_olive],

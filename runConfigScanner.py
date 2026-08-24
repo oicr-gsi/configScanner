@@ -201,6 +201,4 @@ if __name__ == '__main__':
         else:
             print(f"ERROR: Was not able to collect up-to-date information for {instance_to_scan}, no olives")
 
-    save_config(combined_config, output_config)
-
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
